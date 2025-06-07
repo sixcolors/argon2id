@@ -1,3 +1,13 @@
+// Example Fiber application using Argon2ID for password hashing
+//
+// This example demonstrates user registration and login with secure password storage
+// using Argon2ID, along with a simple health check endpoint.
+//
+// This code is for educational purposes and should not be used in production without proper security measures.
+// It does not include protection against timing attacks, rate limiting, or other security best practices.
+//
+// As it is intended for educational purposes, it also exposes the Argon2ID parameters used for hashing,
+// which should not be done in production code.
 package main
 
 import (
@@ -12,9 +22,9 @@ import (
 
 // User represents a user in our system
 type User struct {
-	ID       int    `json:"id"`
 	Email    string `json:"email"`
 	Password string `json:"-"` // Never send password in response
+	ID       int    `json:"id"`
 }
 
 // UserRequest for registration and login
@@ -24,8 +34,10 @@ type UserRequest struct {
 }
 
 // In-memory user storage (use database in production)
-var users = make(map[string]string) // email -> hashed password
-var userID = 1
+var (
+	users  = make(map[string]string) // email -> hashed password
+	userID = 1
+)
 
 // Custom Argon2ID parameters optimized for web applications
 var webParams = &argon2id.Params{

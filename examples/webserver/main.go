@@ -1,3 +1,13 @@
+// Example Webserver application using Argon2ID for password hashing
+//
+// This example demonstrates user registration and login with secure password storage
+// using Argon2ID.
+//
+// This code is for educational purposes and should not be used in production without proper security measures.
+// It does not include protection against timing attacks, rate limiting, or other security best practices.
+//
+// As it is intended for educational purposes, it also exposes the Argon2ID parameters used for hashing,
+// which should not be done in production code.
 package main
 
 import (
