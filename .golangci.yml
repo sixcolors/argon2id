@@ -1,0 +1,56 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters-settings:
+  govet:
+    enable-all: true
+  gocyclo:
+    min-complexity: 10
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  errcheck:
+    check-type-assertions: true
+  gosec:
+    excludes:
+      - G401
+      - G501
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - gocyclo
+    - gofmt
+    - goimports
+    - goconst
+    - dupl
+    - misspell
+    - unconvert
+    - copyloopvar
+    - gosec
+    - revive
+    - gofumpt
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - dupl
+        - gosec
+        - fieldalignment  # Disable fieldalignment for test files
+    - linters:
+        - govet
+      text: "fieldalignment:"
+      path: _test\.go
+  max-issues-per-linter: 0
+  max-same-issues: 0
