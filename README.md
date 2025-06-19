@@ -251,7 +251,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Author
 
-Created by [@sixcolors](https://github.com/sixcolors) - a [Fiber](https://github.com/gofiber/fiber) maintainer.
+Created by [@sixcolors](https://github.com/sixcolors)
 
 ## Acknowledgments
 
