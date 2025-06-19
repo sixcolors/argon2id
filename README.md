@@ -16,9 +16,7 @@ This package provides a bcrypt-like API to make migration seamless while respect
 go get github.com/sixcolors/argon2id
 ```
 
-## Usage
-
-### Basic Usage
+## Basic Usage
 
 ```go
 package main
@@ -51,78 +49,36 @@ func main() {
 }
 ```
 
-### Custom Parameters
+## Security Notice
 
-```go
-package main
+**Important:** For production use, implement comprehensive security measures:
 
-import (
-    "fmt"
-    "log"
-    
-    "github.com/sixcolors/argon2id"
-)
+- Protection against timing attacks (use constant-time comparison)
+- Rate limiting for authentication endpoints
+- Proper input validation and sanitization
+- Secure session management (cryptographically secure tokens, secure cookies)
+- Cross-Site Request Forgery (CSRF) protection
+- Cross-Origin Resource Sharing (CORS) configuration
+- Secure storage of sensitive data (e.g., environment variables)
+- Regular security audits and updates
+- HTTPS/TLS encryption
+- Comprehensive error handling and logging
 
-func main() {
-    password := []byte("mySecretPassword")
-    
-    // Custom parameters for higher security
-    params := &argon2id.Params{
-        Time:    4,          // Number of iterations
-        Memory:  128 * 1024, // 128 MB memory usage
-        Threads: 4,          // Number of threads
-        KeyLen:  32,         // Length of generated key
-    }
-    
-    hash, err := argon2id.GenerateFromPassword(password, params)
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    fmt.Printf("Hash: %s\n", hash)
-    
-    // Comparison works with any valid hash regardless of parameters
-    err = argon2id.CompareHashAndPassword(hash, password)
-    if err != nil {
-        log.Fatal("Password doesn't match")
-    }
-    
-    fmt.Println("Password matches!")
-}
-```
+See [examples/README.md](examples/README.md#-security-notice) for a detailed checklist.
 
-### Extracting Parameters from Hash
+## Examples
 
-```go
-package main
+Explore the [`examples/`](examples) directory for real-world usage:
 
-import (
-    "fmt"
-    "log"
-    
-    "github.com/sixcolors/argon2id"
-)
+- **[Basic Example](examples/basic/main.go):** Hashing, verifying, and extracting parameters.
+- **[Web Server Example](examples/web-server/main.go):** Simple HTTP API for registration and login.
+- **[Fiber Framework Example](examples/fiber-app/main.go):** Integration with the Fiber web framework.
 
-func main() {
-    password := []byte("mySecretPassword")
-    hash, _ := argon2id.GenerateFromPassword(password, nil)
-    
-    // Extract parameters from existing hash
-    params, err := argon2id.ExtractParams(hash)
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    fmt.Printf("Time: %d\n", params.Time)
-    fmt.Printf("Memory: %d KB\n", params.Memory)
-    fmt.Printf("Threads: %d\n", params.Threads)
-    fmt.Printf("Key Length: %d\n", params.KeyLen)
-}
-```
+See [examples/README.md](examples/README.md) for details and usage instructions.
 
-### Migration from bcrypt
+## Migration from bcrypt
 
-The API is designed to make migration from bcrypt straightforward:
+Switching from bcrypt is straightforward:
 
 ```go
 // Before (bcrypt)
@@ -134,57 +90,10 @@ hash, err := argon2id.GenerateFromPassword(password, nil) // nil uses defaults
 err = argon2id.CompareHashAndPassword(hash, password)
 ```
 
-### Web Framework Integration (Fiber Example)
+## Documentation
 
-```go
-package main
-
-import (
-    "github.com/gofiber/fiber/v2"
-    "github.com/sixcolors/argon2id"
-)
-
-type User struct {
-    Email    string `json:"email"`
-    Password string `json:"password"`
-}
-
-func registerHandler(c *fiber.Ctx) error {
-    var user User
-    if err := c.BodyParser(&user); err != nil {
-        return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
-    }
-    
-    // Hash the password
-    hashedPassword, err := argon2id.GenerateFromPassword([]byte(user.Password), nil)
-    if err != nil {
-        return c.Status(500).JSON(fiber.Map{"error": "Failed to hash password"})
-    }
-    
-    // Store user with hashed password
-    // ... database logic here ...
-    
-    return c.JSON(fiber.Map{"message": "User registered successfully"})
-}
-
-func loginHandler(c *fiber.Ctx) error {
-    var user User
-    if err := c.BodyParser(&user); err != nil {
-        return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
-    }
-    
-    // Retrieve stored hash from database
-    // storedHash := getHashFromDatabase(user.Email)
-    
-    // Compare password
-    err := argon2id.CompareHashAndPassword(storedHash, []byte(user.Password))
-    if err != nil {
-        return c.Status(401).JSON(fiber.Map{"error": "Invalid credentials"})
-    }
-    
-    return c.JSON(fiber.Map{"message": "Login successful"})
-}
-```
+- [API Reference](https://pkg.go.dev/github.com/sixcolors/argon2id)
+- [Examples and advanced usage](examples/README.md)
 
 ## Default Parameters
 

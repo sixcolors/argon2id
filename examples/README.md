@@ -4,9 +4,11 @@ This directory contains example applications demonstrating how to use the argon2
 
 These examples cover various use cases, from basic password hashing to web applications using popular Go frameworks. Each example is self-contained and can be run independently.
 
+> **For installation, basic usage, migration from bcrypt, parameter customization, and security best practices, see the [main README](../README.md).**
+
 ## 🔒 Security Notice
 
-**Important**: These examples are for educational purposes and demonstrate basic argon2id usage. For production applications, ensure you implement comprehensive security measures:
+**Important**: These examples are for educational purposes and demonstrate basic argon2id usage. For production applications, ensure you implement comprehensive security measures.
 
 ### 🛡️ Authentication & Authorization
 - **Protection against timing attacks**: Use constant-time comparison functions
@@ -123,49 +125,7 @@ curl -X POST http://localhost:3000/api/login \
 
 # Check service health
 curl http://localhost:3000/api/health
-```
 
-## 🔄 Migration from bcrypt
-
-Migrating from bcrypt to argon2id is straightforward due to API similarity:
-
-```go
-// Before (bcrypt)
-hash, err := bcrypt.GenerateFromPassword(password, bcrypt.DefaultCost)
-if err != nil {
-    return err
-}
-err = bcrypt.CompareHashAndPassword(hash, password)
-
-// After (argon2id)
-hash, err := argon2id.GenerateFromPassword(password, nil)
-if err != nil {
-    return err
-}
-err = argon2id.CompareHashAndPassword(hash, password)
-```
-
-### Key Advantages of argon2id
-
-- **Memory-hard**: Resistant to GPU/ASIC attacks
-- **Tunable parameters**: Fine-grained control over time, memory, and parallelism
-- **Modern standard**: Winner of the Password Hashing Competition
-- **Better security**: More resistant to various attack vectors than bcrypt
-
-### Parameter Customization
-
-Unlike bcrypt's single cost parameter, argon2id offers granular control:
-
-```go
-params := &argon2id.Params{
-    Memory:      64 * 1024, // 64 MB
-    Iterations:  3,         // 3 iterations
-    Parallelism: 2,         // 2 threads
-    SaltLength:  16,        // 16-byte salt
-    KeyLength:   32,        // 32-byte key
-}
-
-hash, err := argon2id.GenerateFromPassword(password, params)
 ```
 
 ## 🏃‍♂️ Quick Start
