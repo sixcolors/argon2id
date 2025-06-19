@@ -10,6 +10,12 @@ These examples cover various use cases, from basic password hashing to web appli
 
 **Important**: These examples are for educational purposes and demonstrate basic argon2id usage. For production applications, ensure you implement comprehensive security measures.
 
+### 🔑 Password Policies
+- **Strong password requirements**: Enforce a sensible minimum length (e.g., 8–12+ characters).
+- **No arbitrary complexity rules**: Avoid requiring special characters, mixed case, or periodic changes—these do not improve security and frustrate users.
+- **Allow long passphrases**: Do not set a maximum length lower than necessary; support passphrases for better usability and security.
+- **Block common/compromised passwords**: Check against known breached password lists to prevent weak choices.
+
 ### 🛡️ Authentication & Authorization
 - **Protection against timing attacks**: Use constant-time comparison functions
 - **Rate limiting**: Implement authentication endpoint throttling to prevent brute force attacks
