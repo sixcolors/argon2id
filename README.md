@@ -71,7 +71,7 @@ See [examples/README.md](examples/README.md#-security-notice) for a detailed che
 Explore the [`examples/`](examples) directory for real-world usage:
 
 - **[Basic Example](examples/basic/main.go):** Hashing, verifying, and extracting parameters.
-- **[Web Server Example](examples/web-server/main.go):** Simple HTTP API for registration and login.
+- **[Web Server Example](examples/webserver/main.go):** Simple HTTP API for registration and login.
 - **[Fiber Framework Example](examples/fiber-app/main.go):** Integration with the Fiber web framework.
 
 See [examples/README.md](examples/README.md) for details and usage instructions.
