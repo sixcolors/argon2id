@@ -3,7 +3,7 @@ module main
 go 1.24.3
 
 require (
-	github.com/gofiber/fiber/v2 v2.52.8
+	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/sixcolors/argon2id v0.0.0-20250607171943-a0c8f3db130e
 )
 
