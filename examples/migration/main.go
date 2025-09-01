@@ -137,10 +137,17 @@ func (s *MigrationUserStore) migrateUserToArgon2id(user *User, password string) 
 		return nil, fmt.Errorf("failed to migrate hash: %w", err)
 	}
 
-	// Update user in store
+	// Update user in store with proper synchronization
 	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Double-check the hash hasn't changed (prevent double migration)
+	if !isBcryptHash(user.Password) {
+		log.Printf("⚠️  User %s already migrated, skipping", user.Email)
+		return user, nil
+	}
+
 	user.Password = string(newHash)
-	s.mu.Unlock()
 
 	log.Printf("🔄 Migrated %s from bcrypt to argon2id", user.Email)
 	return user, nil
@@ -175,10 +182,18 @@ func (s *MigrationUserStore) checkAndUpgradeHash(user *User, password string) (*
 			return user, nil
 		}
 
-		// Update user in store
+		// Update user in store with proper synchronization
 		s.mu.Lock()
+		defer s.mu.Unlock()
+
+		// Double-check the hash still needs upgrading (prevent race conditions)
+		currentNeedsRehash, err := argon2id.NeedsRehash([]byte(user.Password), strongerParams)
+		if err != nil || !currentNeedsRehash {
+			log.Printf("⚠️  Hash for %s already upgraded or changed, skipping", user.Email)
+			return user, nil
+		}
+
 		user.Password = string(newHash)
-		s.mu.Unlock()
 
 		log.Printf("✅ Upgraded hash parameters for %s", user.Email)
 	}
