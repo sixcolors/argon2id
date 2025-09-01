@@ -19,9 +19,9 @@ type User struct {
 
 // MigrationUserStore demonstrates automatic migration from bcrypt to argon2id
 type MigrationUserStore struct {
-	mu     sync.RWMutex
 	users  map[string]*User
 	nextID int
+	mu     sync.RWMutex
 }
 
 func NewMigrationUserStore() *MigrationUserStore {
@@ -113,20 +113,19 @@ func (s *MigrationUserStore) Login(email, password string) (*User, error) {
 
 		// Password is correct, migrate to argon2id
 		return s.migrateUserToArgon2id(user, password)
-
-	} else {
-		// Modern argon2id hash - verify with argon2id
-		err := argon2id.CompareHashAndPassword([]byte(hash), []byte(password))
-		if err != nil {
-			log.Printf("❌ Argon2id login failed for %s", email)
-			return nil, fmt.Errorf("invalid credentials")
-		}
-
-		log.Printf("✅ Argon2id login successful for %s", email)
-
-		// Check if we should upgrade parameters
-		return s.checkAndUpgradeHash(user, password)
 	}
+
+	// Modern argon2id hash - verify with argon2id
+	err := argon2id.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err != nil {
+		log.Printf("❌ Argon2id login failed for %s", email)
+		return nil, fmt.Errorf("invalid credentials")
+	}
+
+	log.Printf("✅ Argon2id login successful for %s", email)
+
+	// Check if we should upgrade parameters
+	return s.checkAndUpgradeHash(user, password)
 }
 
 // migrateUserToArgon2id migrates a user from bcrypt to argon2id
@@ -210,14 +209,8 @@ func (s *MigrationUserStore) GetUser(email string) (*User, bool) {
 	return user, exists
 }
 
-func main() {
-	fmt.Println("=== Argon2ID Migration Example ===")
-	fmt.Println("Demonstrating automatic migration from bcrypt to argon2id")
-	fmt.Println()
-
-	store := NewMigrationUserStore()
-
-	// Create some users with different hash types
+// createUsers creates test users with different hash types
+func createUsers(store *MigrationUserStore) {
 	fmt.Println("1. Creating users with different hash types:")
 
 	// Legacy user with bcrypt
@@ -233,8 +226,10 @@ func main() {
 	}
 
 	fmt.Println()
+}
 
-	// Demonstrate login and automatic migration
+// demonstrateLogin demonstrates login and automatic migration
+func demonstrateLogin(store *MigrationUserStore) {
 	fmt.Println("2. Logging in users (triggers automatic migration):")
 
 	// Login legacy user (should migrate from bcrypt to argon2id)
@@ -261,17 +256,21 @@ func main() {
 	fmt.Printf("   ✅ Modern user logged in: %s (ID: %d)\n", user2.Email, user2.ID)
 
 	fmt.Println()
+}
 
-	// Demonstrate failed login
+// testFailedLogin demonstrates failed login handling
+func testFailedLogin(store *MigrationUserStore) {
 	fmt.Println("3. Testing failed login:")
-	_, err = store.Login("legacy@example.com", "wrongpassword")
+	_, err := store.Login("legacy@example.com", "wrongpassword")
 	if err != nil {
 		fmt.Println("   ✅ Correctly rejected wrong password")
 	}
 
 	fmt.Println()
+}
 
-	// Show hash information
+// showHashInfo displays information about stored hashes
+func showHashInfo(store *MigrationUserStore) {
 	fmt.Println("4. Hash information:")
 	for email := range store.users {
 		if user, exists := store.GetUser(email); exists {
@@ -290,4 +289,17 @@ func main() {
 	fmt.Println("• Verify passwords with the appropriate algorithm")
 	fmt.Println("• Automatically migrate users during login")
 	fmt.Println("• Upgrade hash parameters for existing argon2id users")
+}
+
+func main() {
+	fmt.Println("=== Argon2ID Migration Example ===")
+	fmt.Println("Demonstrating automatic migration from bcrypt to argon2id")
+	fmt.Println()
+
+	store := NewMigrationUserStore()
+
+	createUsers(store)
+	demonstrateLogin(store)
+	testFailedLogin(store)
+	showHashInfo(store)
 }

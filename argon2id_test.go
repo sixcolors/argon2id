@@ -389,7 +389,7 @@ func FuzzCompareHashAndPassword(f *testing.F) {
 	hash, _ := GenerateFromPassword([]byte("password"), nil)
 	f.Add(hash, []byte("password"))
 	f.Add(hash, []byte("wrong"))
-	f.Fuzz(func(t *testing.T, hashedPassword, password []byte) {
+	f.Fuzz(func(_ *testing.T, hashedPassword, password []byte) {
 		err := CompareHashAndPassword(hashedPassword, password)
 		// Just ensure it doesn't panic
 		_ = err

@@ -168,7 +168,15 @@ These limits prevent:
 - **Resource exhaustion** attacks via excessive memory/time usage
 - **Unreasonably large outputs** that waste storage/computation
 
-If you need parameters outside these ranges, the limits are intentionally conservative but can be adjusted by modifying the validation in `GenerateFromPassword()`.
+### Advanced Customization
+
+The parameter limits are defined as constants in the source code and are intentionally conservative and designed to work well for most applications. For specialized use cases requiring different limits, the constants can be modified by forking this library:
+
+- **High-security environments**: May benefit from increased limits for stronger protection
+- **Embedded/resource-constrained systems**: May need lower limits for memory/CPU constraints
+- **Testing/development**: May use reduced limits to improve test execution speed
+
+**Note**: Most applications should use the default limits, which provide excellent security while preventing abuse. Only modify these limits if you have specific requirements and understand the security implications.
 
 ## Hash Format
 

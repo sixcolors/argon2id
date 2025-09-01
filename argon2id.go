@@ -49,6 +49,22 @@ const (
 	DefaultThreads = 2
 	DefaultKeyLen  = 32
 	SaltLen        = 16
+
+	// MinHashLength is the minimum expected length of a valid argon2id hash string
+	MinHashLength = 30
+
+	// Parameter limits for security and DoS protection
+	// These constants can be adjusted for different deployment scenarios:
+	// - For high-security environments: increase MaxTime and MaxMemory
+	// - For resource-constrained environments: decrease defaults
+	// - For testing: use lower values to speed up test execution
+	MinTime    = 1           // Argon2 minimum requirement
+	MaxTime    = 100         // DoS protection (reasonable upper bound)
+	MinMemory  = 8           // Argon2 minimum requirement (8 KB)
+	MaxMemory  = 1024 * 1024 // DoS protection (1 GB maximum)
+	MinThreads = 1           // Argon2 minimum requirement
+	MinKeyLen  = 4           // Security minimum (32-bit minimum)
+	MaxKeyLen  = 128         // Practical maximum (no legitimate need for more)
 )
 
 var (
@@ -115,10 +131,10 @@ func GenerateFromPassword(password []byte, params *Params) ([]byte, error) {
 	}
 
 	// Validate parameters
-	if params.Time < 1 || params.Memory < 8 || params.Threads < 1 || params.KeyLen < 4 {
+	if params.Time < MinTime || params.Memory < MinMemory || params.Threads < MinThreads || params.KeyLen < MinKeyLen {
 		return nil, errors.New("argon2id: invalid parameters")
 	}
-	if params.Time > 100 || params.Memory > 1024*1024 || params.KeyLen > 128 {
+	if params.Time > MaxTime || params.Memory > MaxMemory || params.KeyLen > MaxKeyLen {
 		return nil, errors.New("argon2id: parameters too high")
 	}
 
@@ -207,7 +223,7 @@ func NeedsRehash(hashedPassword []byte, newParams *Params) (bool, error) {
 
 // decodeHash parses an Argon2ID hash string and returns the parameters, salt, and hash
 func decodeHash(hash string) (*Params, []byte, []byte, error) {
-	if len(hash) < 30 {
+	if len(hash) < MinHashLength {
 		return nil, nil, nil, ErrHashTooShort
 	}
 
@@ -287,16 +303,18 @@ func parseParam(params *Params, param string) error {
 	}
 
 	switch keyValue[0] {
-	case "m", "t":
+	case "m":
 		value, err := strconv.ParseUint(keyValue[1], 10, 32)
 		if err != nil {
 			return ErrInvalidHash
 		}
-		if keyValue[0] == "m" {
-			params.Memory = uint32(value)
-		} else {
-			params.Time = uint32(value)
+		params.Memory = uint32(value)
+	case "t":
+		value, err := strconv.ParseUint(keyValue[1], 10, 32)
+		if err != nil {
+			return ErrInvalidHash
 		}
+		params.Time = uint32(value)
 	case "p":
 		value, err := strconv.ParseUint(keyValue[1], 10, 8)
 		if err != nil {
