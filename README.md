@@ -70,6 +70,7 @@ See [examples/README.md](examples/README.md#-security-notice) for a detailed che
 
 Explore the [`examples/`](examples) directory for real-world usage:
 
+- **[Migration Example](examples/migration/main.go):** Automatic migration from bcrypt to argon2id during login
 - **[Basic Example](examples/basic/main.go):** Hashing, verifying, and extracting parameters.
 - **[Web Server Example](examples/webserver/main.go):** Simple HTTP API for registration and login.
 - **[Fiber Framework Example](examples/fiber-app/main.go):** Integration with the Fiber web framework.
@@ -90,6 +91,46 @@ hash, err := argon2id.GenerateFromPassword(password, nil) // nil uses defaults
 err = argon2id.CompareHashAndPassword(hash, password)
 ```
 
+The API is intentionally similar to make migration as seamless as possible.
+
+## Advanced Features
+
+### Parameter Extraction
+
+Extract parameters from existing hashes for analysis or migration:
+
+```go
+params, err := argon2id.ExtractParams(hash)
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("Hash uses %d iterations, %d KB memory\n", params.Time, params.Memory)
+```
+
+### Rehash Detection
+
+Check if a hash needs rehashing with stronger parameters:
+
+```go
+newParams := &argon2id.Params{
+    Time:    6,          // Stronger than default
+    Memory:  128 * 1024, // More memory
+    Threads: 4,
+    KeyLen:  32,
+}
+
+needsRehash, err := argon2id.NeedsRehash(hash, newParams)
+if err != nil {
+    log.Fatal(err)
+}
+
+if needsRehash {
+    // Rehash with stronger parameters
+    newHash, err := argon2id.GenerateFromPassword(password, newParams)
+    // Update stored hash...
+}
+```
+
 ## Documentation
 
 - [API Reference](https://pkg.go.dev/github.com/sixcolors/argon2id)
@@ -106,6 +147,36 @@ The package uses secure defaults suitable for most applications:
 - **Salt Length**: 16 bytes
 
 These defaults provide a good balance between security and performance. For higher security requirements, increase the time and memory parameters.
+
+## Parameter Validation
+
+The package enforces parameter limits to ensure security and prevent abuse:
+
+### Minimum Values (Security)
+- **Time**: ≥ 1 iteration
+- **Memory**: ≥ 8 KB
+- **Threads**: ≥ 1 thread
+- **KeyLen**: ≥ 4 bytes
+
+### Maximum Values (DoS Protection)
+- **Time**: ≤ 100 iterations
+- **Memory**: ≤ 1 GB (1,048,576 KB)
+- **KeyLen**: ≤ 128 bytes
+
+These limits prevent:
+- **Weak configurations** that could compromise security
+- **Resource exhaustion** attacks via excessive memory/time usage
+- **Unreasonably large outputs** that waste storage/computation
+
+### Advanced Customization
+
+The parameter limits are defined as constants in the source code and are intentionally conservative and designed to work well for most applications. For specialized use cases requiring different limits, the constants can be modified by forking this library:
+
+- **High-security environments**: May benefit from increased limits for stronger protection
+- **Embedded/resource-constrained systems**: May need lower limits for memory/CPU constraints
+- **Testing/development**: May use reduced limits to improve test execution speed
+
+**Note**: Most applications should use the default limits, which provide excellent security while preventing abuse. Only modify these limits if you have specific requirements and understand the security implications.
 
 ## Hash Format
 
@@ -128,7 +199,8 @@ Where:
 
 The package provides specific error types for different failure modes:
 
-- `ErrInvalidHash` - Hash format is invalid
+- `ErrInvalidHash` - Hash format is invalid or malformed
+- `ErrHashTooShort` - Hash string is too short to be valid
 - `ErrIncompatibleVersion` - Argon2 version mismatch
 - `ErrIncompatibleVariant` - Wrong Argon2 variant (not argon2id)
 

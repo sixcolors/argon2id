@@ -128,9 +128,14 @@ func TestDecodeHashErrors(t *testing.T) {
 		wantErr error // Move error field last to optimize alignment
 	}{
 		{
+			name:    "too short",
+			hash:    "short",
+			wantErr: ErrHashTooShort,
+		},
+		{
 			name:    "too few parts",
 			hash:    "$argon2id$v=19$m=65536",
-			wantErr: ErrInvalidHash,
+			wantErr: ErrHashTooShort,
 		},
 		// ...rest of test cases...
 	}
@@ -245,8 +250,9 @@ func TestDefaultParams(t *testing.T) {
 
 func TestParamBoundaryValues(t *testing.T) {
 	tests := []struct {
-		name   string
-		params *Params
+		name        string
+		params      *Params
+		expectError bool
 	}{
 		{
 			name: "minimum values",
@@ -256,6 +262,17 @@ func TestParamBoundaryValues(t *testing.T) {
 				Threads: 1,
 				KeyLen:  1,
 			},
+			expectError: true, // Memory < 8, KeyLen < 4
+		},
+		{
+			name: "valid minimum values",
+			params: &Params{
+				Time:    1,
+				Memory:  8,
+				Threads: 1,
+				KeyLen:  4,
+			},
+			expectError: false,
 		},
 		{
 			name: "large values",
@@ -265,14 +282,32 @@ func TestParamBoundaryValues(t *testing.T) {
 				Threads: 255,         // max uint8
 				KeyLen:  128,
 			},
+			expectError: false,
+		},
+		{
+			name: "too large values",
+			params: &Params{
+				Time:    101,
+				Memory:  1024*1024 + 1, // > 1 GB
+				Threads: 1,
+				KeyLen:  129,
+			},
+			expectError: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			hash, err := GenerateFromPassword([]byte("test"), tt.params)
+			if tt.expectError {
+				if err == nil {
+					t.Errorf("expected error for %s, but got none", tt.name)
+				}
+				return // Skip further checks if error is expected
+			}
+
 			if err != nil {
-				t.Fatal(err)
+				t.Fatalf("unexpected error for %s: %v", tt.name, err)
 			}
 
 			err = CompareHashAndPassword(hash, []byte("test"))
@@ -296,5 +331,114 @@ func TestParamBoundaryValues(t *testing.T) {
 				t.Errorf("threads mismatch: expected %d, got %d", tt.params.Threads, extractedParams.Threads)
 			}
 		})
+	}
+}
+
+// Benchmarks
+func BenchmarkGenerateFromPassword(b *testing.B) {
+	password := []byte("benchmarkPassword123")
+	params := DefaultParams()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := GenerateFromPassword(password, params)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkCompareHashAndPassword(b *testing.B) {
+	password := []byte("benchmarkPassword123")
+	hash, err := GenerateFromPassword(password, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		err := CompareHashAndPassword(hash, password)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// Fuzz tests
+func FuzzGenerateFromPassword(f *testing.F) {
+	f.Add([]byte("password"), uint32(3), uint32(65536), uint8(2), uint32(32))
+	f.Fuzz(func(t *testing.T, password []byte, time, memory uint32, threads uint8, keyLen uint32) {
+		params := &Params{
+			Time:    time,
+			Memory:  memory,
+			Threads: threads,
+			KeyLen:  keyLen,
+		}
+		hash, err := GenerateFromPassword(password, params)
+		if err != nil {
+			// Skip invalid params
+			t.Skip()
+		}
+		if len(hash) == 0 {
+			t.Error("expected non-empty hash")
+		}
+	})
+}
+
+func FuzzCompareHashAndPassword(f *testing.F) {
+	hash, _ := GenerateFromPassword([]byte("password"), nil)
+	f.Add(hash, []byte("password"))
+	f.Add(hash, []byte("wrong"))
+	f.Fuzz(func(_ *testing.T, hashedPassword, password []byte) {
+		err := CompareHashAndPassword(hashedPassword, password)
+		// Just ensure it doesn't panic
+		_ = err
+	})
+}
+
+func TestNeedsRehash(t *testing.T) {
+	// Generate hash with default params
+	hash, err := GenerateFromPassword([]byte("test"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Same params should not need rehash
+	needs, err := NeedsRehash(hash, DefaultParams())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if needs {
+		t.Error("expected no rehash needed for same params")
+	}
+
+	// Stronger params should need rehash
+	strongerParams := &Params{
+		Time:    5,
+		Memory:  128 * 1024,
+		Threads: 4,
+		KeyLen:  32,
+	}
+	needs, err = NeedsRehash(hash, strongerParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !needs {
+		t.Error("expected rehash needed for stronger params")
+	}
+
+	// Weaker params should not need rehash
+	weakerParams := &Params{
+		Time:    1,
+		Memory:  32 * 1024,
+		Threads: 1,
+		KeyLen:  32,
+	}
+	needs, err = NeedsRehash(hash, weakerParams)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if needs {
+		t.Error("expected no rehash needed for weaker params")
 	}
 }

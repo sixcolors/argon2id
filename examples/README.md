@@ -56,6 +56,28 @@ Before deploying to production, verify:
 
 ## 📁 Available Examples
 
+### Migration Example
+**Location**: `migration/main.go`
+
+Demonstrates automatic migration from bcrypt to argon2id:
+- 🔄 **Automatic hash type detection** (bcrypt vs argon2id)
+- 🔀 **Seamless migration during login** (no user disruption)
+- ⬆️ **Parameter upgrades** for existing argon2id hashes
+- 🛡️ **Backward compatibility** with legacy systems
+- 📊 **Migration progress tracking**
+
+```bash
+cd examples/migration
+go mod tidy
+go run main.go
+```
+
+This example shows how to:
+- Detect whether a stored hash is bcrypt or argon2id format
+- Verify passwords using the appropriate algorithm
+- Automatically migrate users from bcrypt to argon2id during successful login
+- Upgrade existing argon2id hashes to stronger parameters over time
+
 ### Basic Example
 **Location**: `basic/main.go`
 
