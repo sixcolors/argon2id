@@ -1,6 +1,6 @@
 module migration
 
-go 1.25.0
+go 1.24.3
 
 require (
 	github.com/sixcolors/argon2id v1.0.0
