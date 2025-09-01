@@ -272,15 +272,15 @@ func testFailedLogin(store *MigrationUserStore) {
 // showHashInfo displays information about stored hashes
 func showHashInfo(store *MigrationUserStore) {
 	fmt.Println("4. Hash information:")
-	for email := range store.users {
-		if user, exists := store.GetUser(email); exists {
-			hashType := "argon2id"
-			if isBcryptHash(user.Password) {
-				hashType = "bcrypt"
-			}
-			fmt.Printf("   %s: %s hash\n", email, hashType)
+	store.mu.RLock()
+	for email, user := range store.users {
+		hashType := "argon2id"
+		if isBcryptHash(user.Password) {
+			hashType = "bcrypt"
 		}
+		fmt.Printf("   %s: %s hash\n", email, hashType)
 	}
+	store.mu.RUnlock()
 
 	fmt.Println()
 	fmt.Println("=== Migration Example Complete ===")

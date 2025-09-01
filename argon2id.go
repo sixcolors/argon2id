@@ -131,11 +131,26 @@ func GenerateFromPassword(password []byte, params *Params) ([]byte, error) {
 	}
 
 	// Validate parameters
-	if params.Time < MinTime || params.Memory < MinMemory || params.Threads < MinThreads || params.KeyLen < MinKeyLen {
-		return nil, errors.New("argon2id: invalid parameters")
+	if params.Time < MinTime {
+		return nil, fmt.Errorf("argon2id: Time (%d) is too low, must be >= %d", params.Time, MinTime)
 	}
-	if params.Time > MaxTime || params.Memory > MaxMemory || params.KeyLen > MaxKeyLen {
-		return nil, errors.New("argon2id: parameters too high")
+	if params.Time > MaxTime {
+		return nil, fmt.Errorf("argon2id: Time (%d) is too high, must be <= %d", params.Time, MaxTime)
+	}
+	if params.Memory < MinMemory {
+		return nil, fmt.Errorf("argon2id: Memory (%d KB) is too low, must be >= %d KB", params.Memory, MinMemory)
+	}
+	if params.Memory > MaxMemory {
+		return nil, fmt.Errorf("argon2id: Memory (%d KB) is too high, must be <= %d KB", params.Memory, MaxMemory)
+	}
+	if params.Threads < MinThreads {
+		return nil, fmt.Errorf("argon2id: Threads (%d) is too low, must be >= %d", params.Threads, MinThreads)
+	}
+	if params.KeyLen < MinKeyLen {
+		return nil, fmt.Errorf("argon2id: KeyLen (%d) is too low, must be >= %d", params.KeyLen, MinKeyLen)
+	}
+	if params.KeyLen > MaxKeyLen {
+		return nil, fmt.Errorf("argon2id: KeyLen (%d) is too high, must be <= %d", params.KeyLen, MaxKeyLen)
 	}
 
 	salt := make([]byte, SaltLen)
