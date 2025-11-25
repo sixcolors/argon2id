@@ -4,6 +4,9 @@
 // closely mirrors the golang.org/x/crypto/bcrypt API, making migration between
 // bcrypt and Argon2ID straightforward.
 //
+// The generated hashes are compatible with other standard Argon2ID implementations
+// and follow the PHC string format specification.
+//
 // Basic usage:
 //
 //	password := []byte("mySecretPassword")
@@ -50,14 +53,14 @@ const (
 	DefaultKeyLen  = 32
 	SaltLen        = 16
 
-	// MinHashLength is the minimum expected length of a valid argon2id hash string
+	// MinHashLength is the minimum expected length of a valid argon2id hash string.
 	MinHashLength = 30
 
 	// Parameter limits for security and DoS protection
 	// These constants can be adjusted for different deployment scenarios:
 	// - For high-security environments: increase MaxTime and MaxMemory
 	// - For resource-constrained environments: decrease defaults
-	// - For testing: use lower values to speed up test execution
+	// - For testing: use lower values to speed up test execution.
 	MinTime    = 1           // Argon2 minimum requirement
 	MaxTime    = 100         // DoS protection (reasonable upper bound)
 	MinMemory  = 8           // Argon2 minimum requirement (8 KB)
@@ -165,6 +168,7 @@ func GenerateFromPassword(password []byte, params *Params) ([]byte, error) {
 	encodedHash := base64.RawStdEncoding.EncodeToString(hash)
 
 	format := "$argon2id$v=19$m=%d,t=%d,p=%d$%s$%s"
+
 	return []byte(fmt.Sprintf(format, params.Memory, params.Time, params.Threads, encodedSalt, encodedHash)), nil
 }
 
@@ -208,6 +212,7 @@ func ExtractParams(hashedPassword []byte) (*Params, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return params, nil
 }
 
@@ -215,6 +220,9 @@ func ExtractParams(hashedPassword []byte) (*Params, error) {
 //
 // It compares the time and memory parameters of the hash with the given newParams.
 // Returns true if the hash should be rehashed with stronger parameters (higher time or memory).
+// Note: This function only considers time and memory for determining "strength".
+// Other parameters like threads and key length are not evaluated.
+//
 // This is useful for upgrading hashes to stronger settings over time without breaking
 // existing user logins.
 //
@@ -233,10 +241,14 @@ func NeedsRehash(hashedPassword []byte, newParams *Params) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+
 	return oldParams.Time < newParams.Time || oldParams.Memory < newParams.Memory, nil
 }
 
-// decodeHash parses an Argon2ID hash string and returns the parameters, salt, and hash
+// decodeHash parses an Argon2ID hash string and returns the parameters, salt, and hash.
+// It validates the hash format, version, variant, and parameter bounds to prevent
+// DoS attacks from malicious hashes. Returns ErrHashTooShort, ErrInvalidHash,
+// ErrIncompatibleVariant, or ErrIncompatibleVersion on failure.
 func decodeHash(hash string) (*Params, []byte, []byte, error) {
 	if len(hash) < MinHashLength {
 		return nil, nil, nil, ErrHashTooShort
@@ -266,21 +278,35 @@ func decodeHash(hash string) (*Params, []byte, []byte, error) {
 		return nil, nil, nil, ErrInvalidHash
 	}
 
-	// Validate lengths
-	if len(salt) != SaltLen {
-		return nil, nil, nil, ErrInvalidHash
-	}
-	if len(hashBytes) == 0 {
-		return nil, nil, nil, ErrInvalidHash
+	if err := validateDecodedParts(salt, hashBytes); err != nil {
+		return nil, nil, nil, err
 	}
 
 	// Set key length based on hash length
 	params.KeyLen = uint32(len(hashBytes)) // #nosec G115 - len() returns non-negative int, safe conversion
 
+	// Validate parameters to prevent DoS attacks with malicious hashes
+	if !isValidParams(params) {
+		return nil, nil, nil, ErrInvalidHash
+	}
+
 	return params, salt, hashBytes, nil
 }
 
-// validateVariantAndVersion checks the algorithm variant and version
+// validateDecodedParts validates the decoded salt and hash lengths.
+func validateDecodedParts(salt, hashBytes []byte) error {
+	if len(salt) != SaltLen {
+		return ErrInvalidHash
+	}
+	if len(hashBytes) == 0 {
+		return ErrInvalidHash
+	}
+
+	return nil
+}
+
+// validateVariantAndVersion checks the algorithm variant and version.
+// Only argon2id variant and version 19 are supported.
 func validateVariantAndVersion(variant, version string) error {
 	if variant != "argon2id" {
 		return ErrIncompatibleVariant
@@ -293,7 +319,16 @@ func validateVariantAndVersion(variant, version string) error {
 	return nil
 }
 
-// parseParams parses the parameters section of the hash
+// isValidParams checks if the parameters are within valid bounds to prevent DoS attacks.
+func isValidParams(params *Params) bool {
+	return params.Time >= MinTime && params.Time <= MaxTime &&
+		params.Memory >= MinMemory && params.Memory <= MaxMemory &&
+		params.Threads >= MinThreads &&
+		params.KeyLen >= MinKeyLen && params.KeyLen <= MaxKeyLen
+}
+
+// parseParams parses the parameters section of the hash string.
+// Expects format: "m=memory,t=time,p=threads".
 func parseParams(paramString string) (*Params, error) {
 	params := &Params{}
 	paramParts := strings.Split(paramString, ",")
@@ -310,7 +345,8 @@ func parseParams(paramString string) (*Params, error) {
 	return params, nil
 }
 
-// parseParam parses a single parameter key=value pair
+// parseParam parses a single parameter key=value pair and updates the Params struct.
+// Supports keys: m (memory), t (time), p (parallelism/threads).
 func parseParam(params *Params, param string) error {
 	keyValue := strings.Split(param, "=")
 	if len(keyValue) != 2 {

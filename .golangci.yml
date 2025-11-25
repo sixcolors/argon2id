@@ -1,56 +1,84 @@
+version: "2"
+
 run:
   timeout: 5m
   modules-download-mode: readonly
 
-linters-settings:
-  govet:
-    enable-all: true
-  gocyclo:
-    min-complexity: 10
-  dupl:
-    threshold: 100
-  goconst:
-    min-len: 3
-    min-occurrences: 3
-  errcheck:
-    check-type-assertions: true
-  gosec:
-    excludes:
-      - G401
-      - G501
-
 linters:
+  settings:
+    gocyclo:
+      min-complexity: 10
+    dupl:
+      threshold: 50  # Lower threshold to catch more duplicates
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    errcheck:
+      check-type-assertions: true
+    gosec:
+      # Only exclude G401 (DSA deprecation) for this crypto library
+      # Keep G501 (weak crypto) enabled as it's critical for security
+      excludes:
+        - G401
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+          disabled: false
+          arguments:
+            - "disableStutteringCheck"
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gocyclo
+          - dupl
+          - gosec
+          - errcheck  # Allow unchecked errors in tests
+      - linters:
+          - govet
+        text: "fieldalignment:"
+        path: _test\.go
   enable:
+    # Core Go linters
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - typecheck
     - unused
+
+    # Code quality
     - gocyclo
-    - gofmt
-    - goimports
     - goconst
     - dupl
     - misspell
     - unconvert
     - copyloopvar
-    - gosec
     - revive
+
+    # Documentation & style
+    - godot
+    - whitespace
+    - nlreturn
+
+    # Error handling
+    - errname
+
+    # Security (with minimal exclusions)
+    - gosec
+
+    # Testing
+    - paralleltest
+    - thelper
+
+    # Code organization
+    - nolintlint
+
+formatters:
+  enable:
+    - goimports
     - gofumpt
 
 issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gocyclo
-        - dupl
-        - gosec
-        - fieldalignment  # Disable fieldalignment for test files
-    - linters:
-        - govet
-      text: "fieldalignment:"
-      path: _test\.go
   max-issues-per-linter: 0
   max-same-issues: 0

@@ -7,6 +7,7 @@ import (
 )
 
 func TestGenerateFromPassword(t *testing.T) {
+	t.Parallel()
 	hashRX, err := regexp.Compile(`^\$argon2id\$v=19\$m=65536,t=3,p=2\$[A-Za-z0-9+/]{22}\$[A-Za-z0-9+/]{43}$`)
 	if err != nil {
 		t.Fatal(err)
@@ -32,6 +33,7 @@ func TestGenerateFromPassword(t *testing.T) {
 }
 
 func TestCompareHashAndPassword(t *testing.T) {
+	t.Parallel()
 	hash, err := GenerateFromPassword([]byte("pa$$word"), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -49,6 +51,7 @@ func TestCompareHashAndPassword(t *testing.T) {
 }
 
 func TestCustomParams(t *testing.T) {
+	t.Parallel()
 	params := &Params{
 		Time:    4,
 		Memory:  32 * 1024,
@@ -68,6 +71,7 @@ func TestCustomParams(t *testing.T) {
 }
 
 func TestExtractParams(t *testing.T) {
+	t.Parallel()
 	customParams := &Params{
 		Time:    5,
 		Memory:  32 * 1024,
@@ -97,6 +101,7 @@ func TestExtractParams(t *testing.T) {
 }
 
 func TestVariant(t *testing.T) {
+	t.Parallel()
 	// Hash contains wrong variant
 	err := CompareHashAndPassword([]byte("$argon2i$v=19$m=65536,t=1,p=2$mFe3kxhovyEByvwnUtr0ow$nU9AqnoPfzMOQhCHa9BDrQ+4bSfj69jgtvGu/2McCxU"), []byte("pa$$word"))
 	if err != ErrIncompatibleVariant {
@@ -105,6 +110,7 @@ func TestVariant(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
+	t.Parallel()
 	// Hash contains wrong version
 	err := CompareHashAndPassword([]byte("$argon2id$v=20$m=65536,t=4,p=1$K7EZEYAq/fjTQ6z2KREs3Q$aamcVSlySDBRfPrK0UkLNWQ6tRI6HPvyF5fyednj1HI"), []byte("pa$$word"))
 	if err != ErrIncompatibleVersion {
@@ -113,6 +119,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestInvalidHash(t *testing.T) {
+	t.Parallel()
 	// Hash is missing last part
 	err := CompareHashAndPassword([]byte("$argon2id$v=20$m=65536,t=4,p=1$K7EZEYAq/fjTQ6z2KREs3Q"), []byte("pa$$word"))
 	if err != ErrInvalidHash {
@@ -120,8 +127,10 @@ func TestInvalidHash(t *testing.T) {
 	}
 }
 
-// New comprehensive error tests
+// New comprehensive error tests.
 func TestDecodeHashErrors(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name    string
 		hash    string
@@ -142,6 +151,7 @@ func TestDecodeHashErrors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := CompareHashAndPassword([]byte(tt.hash), []byte("password"))
 			if err != tt.wantErr {
 				t.Errorf("CompareHashAndPassword() error = %v, wantErr %v", err, tt.wantErr)
@@ -157,6 +167,7 @@ func TestDecodeHashErrors(t *testing.T) {
 }
 
 func TestCompareHashAndPasswordEdgeCases(t *testing.T) {
+	t.Parallel()
 	hash, err := GenerateFromPassword([]byte("password123"), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -177,6 +188,7 @@ func TestCompareHashAndPasswordEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := CompareHashAndPassword(hash, tt.password)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CompareHashAndPassword() error = %v, wantErr %v", err, tt.wantErr)
@@ -186,6 +198,7 @@ func TestCompareHashAndPasswordEdgeCases(t *testing.T) {
 }
 
 func TestCompareWithEmptyPassword(t *testing.T) {
+	t.Parallel()
 	// Test hashing and comparing empty password
 	hash, err := GenerateFromPassword([]byte(""), nil)
 	if err != nil {
@@ -204,6 +217,7 @@ func TestCompareWithEmptyPassword(t *testing.T) {
 }
 
 func TestCompareWithLongPassword(t *testing.T) {
+	t.Parallel()
 	// Test with a very long password
 	longPassword := make([]byte, 1000)
 	for i := range longPassword {
@@ -232,6 +246,7 @@ func TestCompareWithLongPassword(t *testing.T) {
 }
 
 func TestDefaultParams(t *testing.T) {
+	t.Parallel()
 	params := DefaultParams()
 
 	if params.Time != DefaultTime {
@@ -249,6 +264,8 @@ func TestDefaultParams(t *testing.T) {
 }
 
 func TestParamBoundaryValues(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name        string
 		params      *Params
@@ -298,11 +315,13 @@ func TestParamBoundaryValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			hash, err := GenerateFromPassword([]byte("test"), tt.params)
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error for %s, but got none", tt.name)
 				}
+
 				return // Skip further checks if error is expected
 			}
 
@@ -334,7 +353,7 @@ func TestParamBoundaryValues(t *testing.T) {
 	}
 }
 
-// Benchmarks
+// Benchmarks.
 func BenchmarkGenerateFromPassword(b *testing.B) {
 	password := []byte("benchmarkPassword123")
 	params := DefaultParams()
@@ -364,7 +383,7 @@ func BenchmarkCompareHashAndPassword(b *testing.B) {
 	}
 }
 
-// Fuzz tests
+// Fuzz tests.
 func FuzzGenerateFromPassword(f *testing.F) {
 	f.Add([]byte("password"), uint32(3), uint32(65536), uint8(2), uint32(32))
 	f.Fuzz(func(t *testing.T, password []byte, time, memory uint32, threads uint8, keyLen uint32) {
@@ -397,6 +416,7 @@ func FuzzCompareHashAndPassword(f *testing.F) {
 }
 
 func TestNeedsRehash(t *testing.T) {
+	t.Parallel()
 	// Generate hash with default params
 	hash, err := GenerateFromPassword([]byte("test"), nil)
 	if err != nil {
@@ -440,5 +460,99 @@ func TestNeedsRehash(t *testing.T) {
 	}
 	if needs {
 		t.Error("expected no rehash needed for weaker params")
+	}
+}
+
+func TestNeedsRehashWithInvalidHash(t *testing.T) {
+	t.Parallel()
+	// Test NeedsRehash with invalid hash
+	invalidHash := []byte("invalid")
+	_, err := NeedsRehash(invalidHash, DefaultParams())
+	if err == nil {
+		t.Error("expected error for invalid hash")
+	}
+	if err != ErrHashTooShort {
+		t.Errorf("expected ErrHashTooShort, got %v", err)
+	}
+}
+
+func TestDecodeHashInvalidSaltLength(t *testing.T) {
+	t.Parallel()
+	// Test with salt that's too short (less than 16 bytes)
+	shortSalt := "AAAAAA" // Only 4 bytes when decoded
+	hash := "$argon2id$v=19$m=65536,t=3,p=2$" + shortSalt + "$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+	err := CompareHashAndPassword([]byte(hash), []byte("password"))
+	if err != ErrInvalidHash {
+		t.Errorf("expected ErrInvalidHash for short salt, got %v", err)
+	}
+
+	_, err = ExtractParams([]byte(hash))
+	if err != ErrInvalidHash {
+		t.Errorf("expected ErrInvalidHash for short salt in ExtractParams, got %v", err)
+	}
+
+	// Test with salt that's too long
+	longSalt := strings.Repeat("A", 64) // Much longer than 16 bytes
+	hash = "$argon2id$v=19$m=65536,t=3,p=2$" + longSalt + "$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+
+	err = CompareHashAndPassword([]byte(hash), []byte("password"))
+	if err != ErrInvalidHash {
+		t.Errorf("expected ErrInvalidHash for long salt, got %v", err)
+	}
+}
+
+func TestDecodeHashParameterBounds(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		hash string
+	}{
+		{
+			name: "time too low",
+			hash: "$argon2id$v=19$m=65536,t=0,p=2$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		},
+		{
+			name: "time too high",
+			hash: "$argon2id$v=19$m=65536,t=101,p=2$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		},
+		{
+			name: "memory too low",
+			hash: "$argon2id$v=19$m=7,t=3,p=2$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		},
+		{
+			name: "memory too high",
+			hash: "$argon2id$v=19$m=1048577,t=3,p=2$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		},
+		{
+			name: "threads too low",
+			hash: "$argon2id$v=19$m=65536,t=3,p=0$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+		},
+		{
+			name: "keyLen too low",
+			hash: "$argon2id$v=19$m=65536,t=3,p=2$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA$", // Empty hash part
+		},
+		{
+			name: "keyLen too high",
+			hash: "$argon2id$v=19$m=65536,t=3,p=2$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA$" + strings.Repeat("A", 129), // 129 chars
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			// Test CompareHashAndPassword
+			err := CompareHashAndPassword([]byte(tt.hash), []byte("password"))
+			if err != ErrInvalidHash {
+				t.Errorf("CompareHashAndPassword() error = %v, wantErr %v", err, ErrInvalidHash)
+			}
+
+			// Test ExtractParams
+			_, err = ExtractParams([]byte(tt.hash))
+			if err != ErrInvalidHash {
+				t.Errorf("ExtractParams() error = %v, wantErr %v", err, ErrInvalidHash)
+			}
+		})
 	}
 }
