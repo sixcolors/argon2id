@@ -6,6 +6,10 @@
 
 A Go package providing Argon2ID password hashing with an API similar to `golang.org/x/crypto/bcrypt` for easy migration.
 
+## Requirements
+
+- **Go 1.25 or later** - Required for security and performance improvements
+
 ## Why this package?
 
 This package provides a bcrypt-like API to make migration seamless while respecting Argon2ID's unique parameter structure (time, memory, threads) rather than bcrypt's single cost parameter.
