@@ -1,7 +1,7 @@
 module github.com/sixcolors/argon2id
 
-go 1.25
+go 1.25.0
 
-require golang.org/x/crypto v0.46.0
+require golang.org/x/crypto v0.49.0
 
-require golang.org/x/sys v0.39.0 // indirect
+require golang.org/x/sys v0.42.0 // indirect
