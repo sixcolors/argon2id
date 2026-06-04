@@ -8,7 +8,7 @@ A Go package providing Argon2ID password hashing with an API similar to `golang.
 
 ## Requirements
 
-- **Go 1.25 or later** - Required for security and performance improvements
+- **Go 1.26 or later** - Required for security and performance improvements
 
 ## Why this package?
 

@@ -14,9 +14,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/sixcolors/argon2id"
 )
 
@@ -49,8 +49,7 @@ var webParams = &argon2id.Params{
 
 func main() {
 	app := fiber.New(fiber.Config{
-		AppName:               "Argon2ID Fiber Example",
-		DisableStartupMessage: true, // Suppress Fiber's startup banner
+		AppName: "Argon2ID Fiber Example",
 	})
 
 	// Middleware
@@ -63,7 +62,7 @@ func main() {
 	app.Get("/api/health", healthCheck)
 
 	// Welcome route with usage info
-	app.Get("/", func(c *fiber.Ctx) error {
+	app.Get("/", func(c fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"message": "Argon2ID + Fiber Example API",
 			"endpoints": fiber.Map{
@@ -107,12 +106,14 @@ func main() {
 	fmt.Println()
 	fmt.Println(`  curl http://localhost:3000/api/health`)
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":3000", fiber.ListenConfig{
+		DisableStartupMessage: true,
+	}))
 }
 
-func registerUser(c *fiber.Ctx) error {
-	var req UserRequest
-	if err := c.BodyParser(&req); err != nil {
+func registerUser(c fiber.Ctx) error {
+	req := new(UserRequest)
+	if err := c.Bind().Body(req); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
@@ -154,9 +155,9 @@ func registerUser(c *fiber.Ctx) error {
 	})
 }
 
-func loginUser(c *fiber.Ctx) error {
-	var req UserRequest
-	if err := c.BodyParser(&req); err != nil {
+func loginUser(c fiber.Ctx) error {
+	req := new(UserRequest)
+	if err := c.Bind().Body(req); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
@@ -195,7 +196,7 @@ func loginUser(c *fiber.Ctx) error {
 	})
 }
 
-func healthCheck(c *fiber.Ctx) error {
+func healthCheck(c fiber.Ctx) error {
 	// Extract params from a test hash to verify library is working
 	testHash, _ := argon2id.GenerateFromPassword([]byte("test"), webParams)
 	params, _ := argon2id.ExtractParams(testHash)
