@@ -198,8 +198,23 @@ func loginUser(c fiber.Ctx) error {
 
 func healthCheck(c fiber.Ctx) error {
 	// Extract params from a test hash to verify library is working
-	testHash, _ := argon2id.GenerateFromPassword([]byte("test"), webParams)
-	params, _ := argon2id.ExtractParams(testHash)
+	testHash, err := argon2id.GenerateFromPassword([]byte("test"), webParams)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"status":  "unhealthy",
+			"error":   "argon2id self-test failed",
+			"working": false,
+		})
+	}
+
+	params, err := argon2id.ExtractParams(testHash)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"status":  "unhealthy",
+			"error":   "argon2id self-test failed",
+			"working": false,
+		})
+	}
 
 	return c.JSON(fiber.Map{
 		"status": "healthy",
